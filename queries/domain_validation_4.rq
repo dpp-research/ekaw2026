@@ -1,0 +1,37 @@
+# =============================================================================
+# Cross-class connection at leaf nodes in Domain Knowledge Graph (DomKG) 
+# =============================================================================
+# Purpose: Ensures that for every link between an individual from the class 
+#          associated with ep:FormulaHead and an individual of the class 
+#          associated with ep:SetOfPossibleWorlds, there exists an alternative 
+#          path such that the only cross-class connection happens between leaf 
+#          nodes of both classes (considering ep:hasSubFormulaHead and 
+#          ep:hasSubWorld respectively) and the property ep:hasSubWorld.
+#
+# Evaluation Criteria: If this query returns the pair nodes or more, the 
+#          cross-class leaf connection requirement is satisfied. 
+#
+# Engine Note: Replace the %%...%% placeholders with the actual mapping URIs. 
+#          This query shoulb be run for every pair formula head, possible world 
+#          that are directly conencted in DomKG.
+# =============================================================================
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?offending_formula ?offending_world
+WHERE {
+    # 1. Secure the link parameters passed from the Python iteration loop
+    BIND(%%FixedWorld%% AS ?offending_world)
+    BIND(%%FixedFormula%% AS ?offending_formula)
+
+    # 2. POSITIVE MATCH PATH: Find a leaf formula under our fixed formula head
+    ?offending_formula %%hasSubFormulaHead%%* ?leaf_formula .
+    FILTER NOT EXISTS { ?leaf_formula %%hasSubFormulaHead%% ?sub_formula . }
+    
+    # 3. Find the leaf world directly anchored to that leaf formula
+    ?leaf_world %%inverseOfAuxiliarIsTrueAt%% ?leaf_formula .
+    FILTER NOT EXISTS { ?leaf_world %%hasSubWorld%% ?sub_world . }
+    
+    # 4. Confirm that this specific leaf world is a sub-part of our fixed world container
+    ?offending_world %%hasSubWorld%%* ?leaf_world .
+}

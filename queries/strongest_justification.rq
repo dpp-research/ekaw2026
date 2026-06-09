@@ -1,0 +1,100 @@
+# =====================================================================================
+# QUERY 3: Creates a new set of possible worlds and corresponding formula head, 
+#          introducing them in their respective hierarchies.
+# Purpose: Introducing the strongest justification and its corresponding formula head.
+# =====================================================================================
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+DELETE {
+    # Delete the connections between the identified ancestors and their old parents
+    ?parent ep:hasSubWorld ?ancestor .
+
+    # Delete the connections between the identified formula heads and their old parents
+    ?parent_fh ep:hasSubFormulaHead ?formula_head .
+}
+INSERT {
+    # Introduce the new element in ep:SetOfPossibleWorlds and insert it into the hierarchy
+    %%NEW_SET_OF_POSSIBLE_WORLDS%% rdf:type ep:SetOfPossibleWorlds .
+    %%NEW_SET_OF_POSSIBLE_WORLDS%% ep:hasSubWorld ?ancestor .
+    ?parent ep:hasSubWorld %%NEW_SET_OF_POSSIBLE_WORLDS%% .
+
+    # Introduce the new element in ep:FormulaHead and insert it into the hierarchy
+    %%NEW_FORMULA_HEAD%% rdf:type ep:FormulaHead .
+    %%NEW_FORMULA_HEAD%% ep:hasSubFormulaHead ?formula_head .
+    ?parent_fh ep:hasSubFormulaHead %%NEW_FORMULA_HEAD%% .
+
+    # Create a triple with the newly created formula head and positive polarity
+    %%NEW_FORMULA_HEAD%% ep:hasPolarity %%POSITIVE_POLARITY%% .
+
+    # Create a quoted RDF-star triple stating it is true at the new set of possible worlds
+    << %%NEW_FORMULA_HEAD%% ep:hasPolarity %%POSITIVE_POLARITY%% >> ep:isTrueAt %%NEW_SET_OF_POSSIBLE_WORLDS%% .
+}
+WHERE {
+    # -------------------------------------------------------------------------
+    # PART 1: Identify Ancestor Worlds
+    # -------------------------------------------------------------------------
+    ?ancestor rdf:type ?world_type .
+    FILTER(?world_type IN (ep:PossibleWorld, ep:SetOfPossibleWorlds))
+
+    # Constraint: All reachable leaf nodes must belong ONLY to the input collection
+    FILTER NOT EXISTS {
+        ?ancestor ep:hasSubWorld* ?leaf .
+        FILTER NOT EXISTS { ?leaf ep:hasSubWorld ?any_sub_world . }
+        FILTER NOT EXISTS {
+            VALUES ?given_world { %%INPUT_WORLDS%% }
+            FILTER(?leaf = ?given_world)
+        }
+    }
+
+    # Constraint: All of their parents must have at least one leaf node NOT in the input collection
+    FILTER NOT EXISTS {
+        ?parent_check ep:hasSubWorld ?ancestor .
+        FILTER NOT EXISTS {
+            ?parent_check ep:hasSubWorld* ?parent_leaf .
+            FILTER NOT EXISTS { ?parent_leaf ep:hasSubWorld ?any_parent_sub_world . }
+            FILTER NOT EXISTS {
+                VALUES ?given_world { %%INPUT_WORLDS%% }
+                FILTER(?parent_leaf = ?given_world)
+            }
+        }
+    }
+
+    # -------------------------------------------------------------------------
+    # PART 2: Identify Formula Heads
+    # -------------------------------------------------------------------------
+    ?formula_head rdf:type ep:FormulaHead .
+    
+    # Path: Connects a formula head down to an input world via sub-formulas and the bridge relation
+    ?formula_head ep:hasSubFormulaHead* / ep:auxiliarIsTrueAt ?matching_input_world .
+    {
+        VALUES ?given_world { %%INPUT_WORLDS%% }
+        FILTER(?matching_input_world = ?given_world)
+    }
+
+    # Constraint: All of their parents must have a leaf formula node connected to a world NOT in the input collection
+    FILTER NOT EXISTS {
+        ?parent_fh_check ep:hasSubFormulaHead ?formula_head .
+        FILTER NOT EXISTS {
+            ?parent_fh_check ep:hasSubFormulaHead* ?leaf_fh .
+            FILTER NOT EXISTS { ?leaf_fh ep:hasSubFormulaHead ?any_sub_fh . }
+            ?leaf_fh ep:auxiliarIsTrueAt ?other_world .
+            FILTER NOT EXISTS {
+                VALUES ?given_world { %%INPUT_WORLDS%% }
+                FILTER(?other_world = ?given_world)
+            }
+        }
+    }
+
+    # -------------------------------------------------------------------------
+    # PART 3: Fetch Parents Safely for Re-linking
+    # -------------------------------------------------------------------------
+    # Wrapped in OPTIONAL so root nodes with 0 parents are still evaluated correctly
+    OPTIONAL {
+        ?parent ep:hasSubWorld ?ancestor .
+    }
+    OPTIONAL {
+        ?parent_fh ep:hasSubFormulaHead ?formula_head .
+    }
+}

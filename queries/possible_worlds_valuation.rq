@@ -1,0 +1,21 @@
+# =============================================================================
+# QUERY 1: Find elements that allow to determine the valuation of a formula.
+# Purpose: Given a fixed target formula head, computes every structural 
+#          PossibleWorld reachable via sub-formulas or implication paths.
+# =============================================================================
+
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?possibleWorld
+WHERE {
+    # 1. Secure the fixed formula head target passed from the Python orchestration loop
+    BIND(%%FixedFormula%% AS ?targetFormula)
+
+    # 2. Transitive graph traversal path:
+    #    - Zero or more (*) hops downwards via ep:hasSubFormulaHead OR 
+    #      via the inverse direction of ep:implies (^ep:implies)
+    #    - Followed by exactly one final step (/) to the grounded ep:PossibleWorld
+    ?targetFormula (ep:hasSubFormulaHead | ^ep:implies)* / ep:auxiliarIsTrueAt ?possibleWorld .
+}
+ORDER BY ?possibleWorld

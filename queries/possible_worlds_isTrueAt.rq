@@ -1,0 +1,57 @@
+# =================================================================================
+# QUERY 2: Find the valuation of an OR formula AND not the formulas that imply it. 
+# Purpose: Given a fixed target formula head, computes the possible world, set of 
+#          possible worlds or complement that represent the valuation of the target 
+#          formula AND NOT the formulas that imply it.  
+#          
+# ================================================================================
+
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?world
+WHERE {
+    # 1. Bind the input formula head target 
+    BIND(%%FixedFormula%% AS ?formula)
+
+    # 2. Extract a candidate ancestor world based on any leaf world of our formula
+    ?formula ep:hasSubFormulaHead* ?leaf_formula .
+    FILTER NOT EXISTS { ?leaf_formula ep:hasSubFormulaHead ?sub_f . }
+    ?target_leaf_world ^ep:auxiliarIsTrueAt ?leaf_formula .
+    
+    # Climb up the containment hierarchy to select matching candidate ancestors
+    ?target_leaf_world ^ep:hasSubWorld* ?world .
+
+    # =========================================================================
+    # CONSTRAINT PART A: NO MISSING WORLDS (Subset Verification)
+    # Every atomic leaf world required by the formula MUST sit under ?world
+    # =========================================================================
+    FILTER NOT EXISTS {
+        ?formula ep:hasSubFormulaHead* ?req_leaf_formula .
+        FILTER NOT EXISTS { ?req_leaf_formula ep:hasSubFormulaHead ?sub_f1 . }
+        ?required_leaf_world ^ep:auxiliarIsTrueAt ?req_leaf_formula .
+
+        # Identify if this specific required world is missing under our candidate container
+        FILTER NOT EXISTS {
+            ?world ep:hasSubWorld* ?required_leaf_world .
+        }
+    }
+
+    # =========================================================================
+    # CONSTRAINT PART B: NO EXTRA WORLDS (Superset Verification)
+    # Every atomic leaf world underneath ?world MUST be required by the formula
+    # =========================================================================
+    FILTER NOT EXISTS {
+        # Extract an atomic leaf world sitting under our candidate container
+        ?world ep:hasSubWorld* ?extra_leaf_world .
+        FILTER NOT EXISTS { ?extra_leaf_world ep:hasSubWorld ?deep_w . }
+
+        # Check if this leaf world is an outsider (it does NOT map to any of the formula's leaves)
+        FILTER NOT EXISTS {
+            ?formula ep:hasSubFormulaHead* ?just_leaf_formula .
+            FILTER NOT EXISTS { ?just_leaf_formula ep:hasSubFormulaHead ?sub_f2 . }
+            ?extra_leaf_world ^ep:auxiliarIsTrueAt ?just_leaf_formula .
+        }
+    }
+}
+ORDER BY ?world

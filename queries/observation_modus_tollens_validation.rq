@@ -1,0 +1,29 @@
+# ===================================================================================
+# Modus tollens consistency for negative polarity in Epistemic Knowledge Graph (EpKG)
+# ===================================================================================
+# Purpose: Ensures that when added a triple representing a formula with negative 
+#          polarity, none of the formula heads it is implied by has positive polarity.
+#
+# Evaluation Criteria: If this query returns an empty result set, the modus ponens 
+#          consistency requirement is satisfied.
+#
+# Engine Note: This query is meant to be applied for the polarity triples created 
+#          from observations, no inferred ones. 
+# ===================================================================================
+
+
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+
+SELECT ?formula ?condition ?formula_polarity ?condition_polarity
+WHERE {
+    # 1. Locate a descendant formula marked as Positive (NOK)
+    ?formula ep:hasPolarity ep:Negative .
+    BIND(ep:Negative AS ?formula_polarity)
+    
+    # 2. Trace transitively upwards via property paths to find its ancestor formula
+    ?condition ep:implies+ ?formula .
+    
+    # 3. Check if that ancestor is contradicting it by being marked Negative (OK)
+    ?condition ep:hasPolarity ep:Positive .
+    BIND(ep:Positive AS ?condition_polarity)
+}

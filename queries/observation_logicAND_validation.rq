@@ -1,0 +1,29 @@
+# =================================================================================
+# Descendant consistency for negative polarity in Epistemic Knowledge Graph (EpKG)
+# =================================================================================
+# Purpose: Ensures that when added a triple representing a formula with negative 
+#          polarity, none of its descendants have  positive polarity, and 
+#          therefore the formula head nodes can be interpreted as OR gates.   
+#
+# Evaluation Criteria: If this query returns an empty result set, the descendant 
+#          consistency requirement is satisfied.
+#
+# Engine Note: This query is meant to be applied for the polarity triples created 
+#          from observations, no inferred ones. 
+# =================================================================================
+
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+
+SELECT ?formula ?descendant ?formula_polarity ?descendant_polarity
+WHERE {
+    # 1. Locate a parent formula marked as Negative (OK)
+    ?formula ep:hasPolarity ep:Negative .
+    BIND(ep:Negative AS ?formula_polarity)
+    
+    # 2. Trace transitively downwards via property paths to find its sub-formula descendant
+    ?formula ep:hasSubFormulaHead+ ?descendant .
+    
+    # 3. Check if that descendant is contradicting it by being marked Positive (NOK)
+    ?descendant ep:hasPolarity ep:Positive .
+    BIND(ep:Positive AS ?descendant_polarity)
+}

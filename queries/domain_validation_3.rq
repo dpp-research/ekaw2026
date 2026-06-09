@@ -1,0 +1,67 @@
+# =============================================================================
+# Same leaf nodes in the Domain Knowledge Graph (DomKG)
+# =============================================================================
+# Purpose: Ensures that every individual from the class associated 
+#          with ep:FormulaHead is linked to an individual of the class 
+#          associated ep:SetOfPossibleWorlds such that both individuals reach 
+#          exactly the same leaf nodes of the graph formed by the class 
+#          associated with ep:SetOfPossibleWorlds and the property 
+#          ep:hasSubWorld.
+#
+# Evaluation Criteria: If this query returns one world or more, the same leaf 
+#          nodes requirement is satisfied
+#
+# Engine Note: Replace the %%...%% placeholders with the actual mapping URIs.
+# =============================================================================
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?world
+WHERE {
+    BIND(%%FixedFormula%% AS ?formula)
+
+    # 1. Identify a candidate Formula Head
+    ?formula rdf:type %%FormulaHead%% .
+
+    # 2. Identify an implicit structural target world node via property anchoring
+    ?world rdf:type %%SetOfPossibleWorlds%% .
+
+    # =========================================================================
+    # CONSTRAINT PART A: NO MISSING WORLDS 
+    # (Every leaf world required by the formula MUST be a sub-world of ?world)
+    # =========================================================================
+    FILTER NOT EXISTS {
+        # Find any leaf formula descendant
+        ?formula %%hasSubFormulaHead%%* ?leaf_formula .
+        FILTER NOT EXISTS { ?leaf_formula %%hasSubFormulaHead%% ?sub_f . }
+
+        # Find the atomic leaf world attached to that leaf formula
+        ?required_leaf_world %%inverseOfAuxiliarIsTrueAt%% ?leaf_formula .
+        FILTER NOT EXISTS { ?required_leaf_world %%hasSubWorld%% ?sub_w1 . }
+
+        # Check if this required leaf world is MISSING from our candidate container
+        FILTER NOT EXISTS {
+            ?world %%hasSubWorld%%* ?required_leaf_world .
+        }
+    }
+
+    # =========================================================================
+    # CONSTRAINT PART B: NO EXTRA WORLDS 
+    # (Every atomic leaf world under ?world MUST be required by the formula)
+    # =========================================================================
+    FILTER NOT EXISTS {
+        # Find an atomic leaf world currently sitting inside this candidate container
+        ?world %%hasSubWorld%%* ?extra_leaf_world .
+        FILTER NOT EXISTS { ?extra_leaf_world %%hasSubWorld%% ?sub_w2 . }
+
+        # Check if this leaf world is NOT justified/required by any leaf formulas
+        FILTER NOT EXISTS {
+            ?formula %%hasSubFormulaHead%%* ?target_leaf_formula .
+            FILTER NOT EXISTS { ?target_leaf_formula %%hasSubFormulaHead%% ?sub_f2 . }
+
+            ?extra_leaf_world %%inverseOfAuxiliarIsTrueAt%% ?target_leaf_formula .
+        }
+    }
+}
+ORDER BY ?formula ?world

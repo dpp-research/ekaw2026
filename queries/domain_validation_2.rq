@@ -1,0 +1,27 @@
+# =============================================================================
+# Leaf-Level Grounding in the Domain Knowledge Graph (DomKG)
+# =============================================================================
+# Purpose: Ensures that every individual from the class associated 
+#          with ep:FormulaHead is explicitly linked to a leaf  individual 
+#          within the structural graph formed by the class associated 
+#          with ep:SetOfPossibleWorlds and the property ep:hasSubWorld.
+#
+# Evaluation Criteria: If this query returns an empty result set, the leaf-level 
+#                      grounding requirement is satisfied.
+#
+# Engine Note: Replace the %%...%% placeholders with the actual mapping URIs.
+#              Note that %%inverseOfAuxiliarIsTrueAt%% connects a possible world 
+#              individual to a formula head individual.
+# =============================================================================
+SELECT DISTINCT ?ungrounded_formula
+WHERE {
+    ?ungrounded_formula a %%FormulaHead%% .
+    FILTER NOT EXISTS {
+        ?ungrounded_formula %%hasSubFormulaHead%%* / ^%%inverseOfAuxiliarIsTrueAt%% ?leaf_world .
+        ?leaf_world a %%SetOfPossibleWorlds%% .
+        FILTER NOT EXISTS {
+            ?leaf_world %%hasSubWorld%% ?deeper_world .
+        }
+    }
+}
+ORDER BY ?ungrounded_formula

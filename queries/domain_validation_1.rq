@@ -1,0 +1,21 @@
+# =============================================================================
+# Structural Acyclicity Constraint in the Domain Knowledge Graph (DomKG)
+# =============================================================================
+# Purpose: Ensures that individuals instantiated from classes associated with 
+#          ep:FormulaHead and ep:SetOfPossibleWorlds form a strict Directed 
+#          Acyclic Graph (DAG) under the respective properties 
+#          ep:hasSubFormulaHead and ep:hasSubWorld.
+#
+# Evaluation Criteria: If this query returns an empty result set, the acyclicity 
+#                      requirement is satisfied.
+#
+# Engine Note: Replace %%hasSubFormulaHead/World%% with the actual property URI 
+#              being validated during the execution loop.
+# =============================================================================
+
+SELECT DISTINCT ?offending_node
+WHERE {
+    # Detects cyclic structures where a node transitively connects back to itself
+    ?offending_node %%hasSubFormulaHead/World%%+ ?offending_node .
+}
+ORDER BY ?offending_node

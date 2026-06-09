@@ -1,0 +1,29 @@
+# =================================================================================
+# Ancestor consistency for positive polarity in Epistemic Knowledge Graph (EpKG)
+# =================================================================================
+# Purpose: Ensures that when added a triple representing a formula with positive 
+#          polarity, none of its ancestors have  negative polarity, and 
+#          therefore the formula head nodes can be interpreted as OR gates.   
+#
+# Evaluation Criteria: If this query returns an empty result set, the ancestor 
+#          consistency requirement is satisfied.
+#
+# Engine Note: This query is meant to be applied for the polarity triples created 
+#          from observations, no inferred ones. 
+# =================================================================================
+
+PREFIX ep: <https://github.com/dpp-research/ekaw2026/epistemic/>
+
+SELECT ?formula ?ancestor ?formula_polarity ?ancestor_polarity
+WHERE {
+    # 1. Locate a descendant formula marked as Positive (NOK)
+    ?formula ep:hasPolarity ep:Positive .
+    BIND(ep:Positive AS ?formula_polarity)
+    
+    # 2. Trace transitively upwards via property paths to find its ancestor formula
+    ?ancestor ep:hasSubFormulaHead+ ?formula .
+    
+    # 3. Check if that ancestor is contradicting it by being marked Negative (OK)
+    ?ancestor ep:hasPolarity ep:Negative .
+    BIND(ep:Negative AS ?ancestor_polarity)
+}
