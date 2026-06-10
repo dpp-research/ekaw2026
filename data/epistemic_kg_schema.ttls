@@ -1,0 +1,54 @@
+@prefix ep: <https://github.com/dpp-research/ekaw2026/epistemic/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# --- General Epistemic KG ---
+ep:GeneralEpistemicKG {
+    
+    # Classes
+    ep:Agent a rdfs:Class .
+    ep:FormulaHead a rdfs:Class .
+    ep:Polarity a rdfs:Class .
+    ep:PossibleWorld a rdfs:Class .
+    ep:Complement a rdfs:Class .
+    ep:SetOfPossibleWorlds a rdfs:Class .
+
+    # Regular Properties
+    ep:hasSubFormulaHead a rdf:Property ; rdfs:domain ep:FormulaHead ; rdfs:range ep:FormulaHead .
+    ep:implies a rdf:Property ; rdfs:domain ep:FormulaHead ; rdfs:range ep:FormulaHead .
+    ep:hasPolarity a rdf:Property ; rdfs:domain ep:FormulaHead ; rdfs:range ep:Polarity .
+    
+    ep:hasComplement a rdf:Property ;
+        rdfs:comment "Relates PossibleWorld or SetOfPossibleWorlds to Complement and vice versa" .
+
+    ep:hasSubWorld a rdf:Property ;
+        rdfs:comment "Relates SetOfPossibleWorlds to other sets or individual PossibleWorlds. Can also relate PossibleWorld to PossibleWorld." .
+
+    # Properties pointing directly to FormulaHead (Regular Properties)
+    ep:believesToBeTrue a rdf:Property ; rdfs:domain ep:Agent ; rdfs:range ep:FormulaHead .
+    ep:believesToBeFalse a rdf:Property ; rdfs:domain ep:Agent ; rdfs:range ep:FormulaHead .
+    ep:believesToBeConflicting a rdf:Property ; rdfs:domain ep:Agent ; rdfs:range ep:FormulaHead .
+    ep:believesToBeUnknown a rdf:Property ; rdfs:domain ep:Agent ; rdfs:range ep:FormulaHead .
+
+    ep:auxiliarIsTrueAt a rdf:Property ; rdfs:domain ep:FormulaHead ; rdfs:range ep:PossibleWorld .
+
+    # RDF-star Properties (Metadata about statements)
+    ep:isTrueAt a rdf:Property ; rdfs:range ep:PossibleWorld .
+}
+
+# --- Local Epistemic KG ---
+ep:LocalEpistemicKG {
+
+    # Classes
+    ep:Observation a rdfs:Class .
+    ep:EvidenceType a rdfs:Class .
+
+    # Properties
+    ep:evidence a rdf:Property ;
+        rdfs:comment "Relates PossibleWorld, SetOfPossibleWorlds, or Complement to EvidenceType" .
+
+    # RDF-star Properties
+    ep:believes a rdf:Property ; rdfs:domain ep:Agent .
+    ep:hasEvidenceFor a rdf:Property ; rdfs:domain ep:Agent .
+    ep:supports a rdf:Property ; rdfs:domain ep:Observation .
+}
